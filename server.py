@@ -8,11 +8,9 @@ from task_entry import add_task
 from reschedule import panic_button, stopping_now, retry_later
 from checkin import create_checkin
 
-
 app = FastAPI(title="Smart Scheduler")
 
-# --- Requests Models ---
-# these define what each endpint expects to receive
+# --- Request Models ---
 
 class WhatNowRequest(BaseModel):
     energy: Optional[str] = None
@@ -44,20 +42,20 @@ class RetryRequest(BaseModel):
     retry_note: Optional[str] = ""
     energy: Optional[str] = "unknown"
 
-
+class NoteRequest(BaseModel):
+    note: str
+    type: Optional[str] = "observation"
 
 # --- Endpoints ---
 
 @app.get("/health")
 def health_check():
-    """Quick check that the server is running"""
+    """Quick check that the server is running."""
     return {"status": "ok"}
 
 @app.post("/what-now")
 def get_what_now(request: WhatNowRequest):
-    """
-    What should I do right now?
-    """
+    """What should I do right now?"""
     try:
         response = what_now(
             current_energy=request.energy,
@@ -66,12 +64,10 @@ def get_what_now(request: WhatNowRequest):
         return {"response": response}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
+
 @app.post("/add-task")
 def add_task_endpoint(request: AddTaskRequest):
-    """
-    Add a new task from natural language.
-    """
+    """Add a new task from natural language."""
     try:
         filepath = add_task(request.text)
         if filepath is None:
@@ -79,7 +75,6 @@ def add_task_endpoint(request: AddTaskRequest):
         return {"status": "created", "file": str(filepath)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
 
 @app.post("/checkin")
 def checkin_endpoint(request: CheckinRequest):
@@ -133,9 +128,58 @@ def retry_endpoint(request: RetryRequest):
         return {"status": "retry set", "message": message}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
 
+@app.post("/note")
+def note_endpoint(request: NoteRequest):
+    """Log a note to observations or complaints."""
+    try:
+        from config import OBSERVATIONS, COMPLAINTS
+        from datetime import datetime
 
+        today = datetime.now().strftime("%Y-%m-%d %H:%M")
+        entry = f"\n## {today}\n{request.note}\n"
+
+        if request.type == "complaint":
+            filepath = COMPLAINTS
+        else:
+            filepath = OBSERVATIONS
+
+        with open(filepath, 'a', encoding='utf-8') as f:
+            f.write(entry)
+
+        return {"status": "logged", "type": request.type}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/tasks/current")
+def get_current_tasks():
+    """Return current unfinished tasks as a simple list."""
+    try:
+        from config import TASKS, INBOX
+        import frontmatter
+
+        tasks = []
+
+        for filepath in list(TASKS.rglob("*.md")) + list(INBOX.rglob("*.md")):
+            post = frontmatter.load(filepath)
+            status = post.metadata.get("status", "")
+            title = post.metadata.get("title", "")
+
+            # Skip files without proper task structure
+            if not title or not status:
+                continue
+
+            if status not in ["done"]:
+                tasks.append({
+                    "title": title,
+                    "status": status,
+                    "energy": post.metadata.get("energy_required", "unknown"),
+                    "file": filepath.name
+                })
+
+        return {"tasks": tasks}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     uvicorn.run(
