@@ -20,6 +20,15 @@ def clean_json_response(text: str) -> str:
     text = re.sub(r'```$', '', text)
     return text.strip()
 
+def title_exists(title: str) -> bool:
+    """
+    Check if a task with this title already exists in the vault.
+    """
+    for filepath in list(TASKS.rglob("*.md")) + list(INBOX.rglob("*.md")):
+        post = frontmatter.load(filepath)
+        if post.metadata.get("title", "").lower() == title.lower():
+            return True
+    return False
 
 def parse_task_from_text(raw_text: str) -> dict:
     """
@@ -87,10 +96,25 @@ def create_task_file(task_data: dict, destination: Path = None) -> Path:
 
     # create filename from title
     title = task_data.get("title", "untitled task")
-    safe_title = title.lower().replace(" ", "-")
-    timestamp = datetime.now().strftime("%Y%m%d-%H%M")
-    filename = f"{safe_title}-{timestamp}.md"
+
+    # Warn if duplicate title detected
+    if title_exists(title):
+        print(f"Warning: a task called '{title}' already exists.")
+        print("Creating anyway — check your vault for duplicates.")
+
+    import re
+    safe_title = re.sub(r'[^\w\s]', '', title.lower())
+    safe_title = safe_title.replace(" ", "_")
+    safe_title = re.sub(r'_+', '_', safe_title)
+    filename = f"{safe_title}.md"
     filepath = destination / filename
+
+    # Handle filename collision as last resort
+    counter = 2
+    while filepath.exists():
+        filename = f"{safe_title}_{counter}.md"
+        filepath = destination / filename
+        counter += 1
 
     # build the frontmatter
     metadata = {
