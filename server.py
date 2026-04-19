@@ -72,7 +72,8 @@ class ExtendTaskRequest(BaseModel):
     additional_minutes: int
     energy: Optional[str] = "unknown"
 
-
+class DeleteTaskRequest(BaseModel):
+    task_title: str
 
 # --- Endpoints ---
 
@@ -372,6 +373,33 @@ def extend_task_endpoint(request: ExtendTaskRequest):
             energy=request.energy
         )
         return {"status": "extended", "message": message}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/delete-task")
+def delete_task_endpoint(request: DeleteTaskRequest):
+    """Delete a task file and its calendar event if one exists."""
+    try:
+        from reschedule import find_task_file
+        import frontmatter
+
+        filepath = find_task_file(request.task_title)
+
+        if not filepath:
+            raise HTTPException(status_code=404, detail=f"Task not found: {request.task_title}")
+
+        post = frontmatter.load(filepath)
+
+        # Delete calendar event if exists
+        event_id = post.metadata.get("calendar_event_id")
+        if event_id:
+            from calendar_writer import delete_calendar_event
+            delete_calendar_event(event_id)
+
+        # Delete the file
+        filepath.unlink()
+
+        return {"status": "deleted", "message": f"'{request.task_title}' deleted."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
