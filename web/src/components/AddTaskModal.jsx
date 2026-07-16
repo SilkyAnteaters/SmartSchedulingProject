@@ -251,7 +251,7 @@ export default function AddTaskModal({ onClose, onRefresh }) {
                   onClick={() => handleAdd("backlog")}
                   disabled={loading}
                 >
-                  Add to Backlog
+                  Add to Unscheduled
                 </button>
                 <button
                   className="btn-ghost"

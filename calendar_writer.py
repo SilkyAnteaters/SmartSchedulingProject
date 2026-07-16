@@ -2,13 +2,14 @@ from datetime import datetime, timedelta
 from calendar_auth import get_personal_service
 from calendar_reader import get_todays_events, get_free_slots
 import frontmatter
+import math
 from pathlib import Path
 from config import TASKS, INBOX
 
 
 def round_to_5_minutes(dt):
     minutes = dt.minute
-    rounded = round(minutes / 5) * 5
+    rounded = math.ceil(minutes / 5) * 5
     if rounded == 60:
         dt = dt.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
     else:

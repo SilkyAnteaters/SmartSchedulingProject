@@ -62,7 +62,7 @@ function App() {
           className={`task-pool ${mobileTab === "tasks" ? "mobile-active" : ""}`}
         >
           <h2>Tasks</h2>
-          <TaskPool key={taskPoolKey} />
+          <TaskPool key={taskPoolKey} onRefresh={handleRefresh} />
         </aside>
 
         <section className="calendar-pane">

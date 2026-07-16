@@ -133,6 +133,10 @@ const CalendarGrid = forwardRef(function CalendarGrid(
         editable={true}
         selectable={true}
         droppable={true}
+        scrollTime={(() => {
+          const d = new Date(Date.now() - 5 * 60 * 1000);
+          return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}:00`;
+        })()}
         events={async (fetchInfo, successCallback) => {
           if (eventsCache.length > 0) {
             successCallback(eventsCache);

@@ -31,8 +31,8 @@
 }
 
 .view-switcher button {
-  padding: 4px 10px;
-  font-size: 12px;
+  padding: 4px 8px;
+  font-size: 11px;
 }
 
 .view-switcher button.active {
@@ -607,4 +607,51 @@
   flex: 1;
   min-width: 100px;
   font-size: 12px;
+}
+
+/* ── Context Menu Forms ── */
+.context-form {
+  padding: 8px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.context-form .form-field {
+  gap: 3px;
+}
+
+.context-form .form-field label {
+  font-size: 10px;
+}
+
+.context-form input,
+.context-form select,
+.context-form textarea {
+  font-size: 12px;
+  padding: 4px 8px;
+  width: 100%;
+}
+
+.context-form textarea {
+  resize: none;
+}
+
+.context-form-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.context-form-buttons button {
+  flex: 1;
+  font-size: 12px;
+  padding: 5px 8px;
+}
+
+.context-section-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-muted);
+  padding: 4px 10px 2px;
 }
