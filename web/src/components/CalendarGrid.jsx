@@ -194,11 +194,9 @@ const CalendarGrid = forwardRef(function CalendarGrid(
               month: "long",
               day: "numeric",
             });
-            const endStr = end.toLocaleString("default", {
-              day: "numeric",
-              year: "numeric",
-            });
-            setCurrentDateLabel(`${startStr} – ${endStr}`);
+            const endDay = end.getDate();
+            const endYear = end.getFullYear();
+            setCurrentDateLabel(`${startStr} – ${endDay}, ${endYear}`);
           }
         }}
         scrollTime={(() => {
