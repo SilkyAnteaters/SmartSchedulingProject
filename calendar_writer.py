@@ -133,7 +133,7 @@ def find_best_slot(duration_minutes: int) -> dict:
 
 
 def create_calendar_event(
-    title: str, start_iso: str, end_iso: str, description: str = ""
+    title: str, start_iso: str, end_iso: str, description: str = "", energy: str = ""
 ) -> str:
     """
     Create an event on the personal Google Calendar.
@@ -141,11 +141,37 @@ def create_calendar_event(
     """
     service = get_personal_service()
 
+    # Set reminders based on energy level
+    if energy in ("deep", "high"):
+        reminders = {
+            "useDefault": False,
+            "overrides": [
+                {"method": "popup", "minutes": 20},
+                {"method": "popup", "minutes": 5},
+            ],
+        }
+    elif energy in ("cantrip", "low"):
+        reminders = {
+            "useDefault": False,
+            "overrides": [
+                {"method": "popup", "minutes": 5},
+            ],
+        }
+    else:
+        # medium or unknown — 10 min
+        reminders = {
+            "useDefault": False,
+            "overrides": [
+                {"method": "popup", "minutes": 10},
+            ],
+        }
+
     event = {
         "summary": title,
         "description": description,
         "start": {"dateTime": start_iso, "timeZone": "America/New_York"},
         "end": {"dateTime": end_iso, "timeZone": "America/New_York"},
+        "reminders": reminders,
     }
 
     created = service.events().insert(calendarId="primary", body=event).execute()
@@ -296,7 +322,8 @@ def schedule_task(
                 "message": "No available slot found today for this task.",
             }
 
-    # Delete existing calendar event if one exists
+    # Delete existing calendar event if one exists + get energy level
+    task_energy = ""
     all_files = list(TASKS.rglob("*.md")) + list(INBOX.rglob("*.md"))
     for filepath in all_files:
         post = frontmatter.load(filepath)
@@ -304,6 +331,7 @@ def schedule_task(
             existing_event_id = post.metadata.get("calendar_event_id")
             if existing_event_id:
                 delete_calendar_event(existing_event_id)
+            task_energy = post.metadata.get("energy_required", "")
             break
 
     # Create the calendar event
@@ -312,6 +340,7 @@ def schedule_task(
         start_iso=slot["start_iso"],
         end_iso=slot["end_iso"],
         description="Scheduled by SmartScheduler",
+        energy=task_energy,
     )
 
     # Update the task file
