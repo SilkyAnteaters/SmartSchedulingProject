@@ -39,7 +39,7 @@ function deadlineUrgency(deadline) {
   return { label: `Due in ${days}d`, color: "#6B6560", days };
 }
 
-function TaskCard({ task, onTouchStart, onTouchEnd }) {
+function TaskCard({ task, onTouchStart, onTouchEnd, onRightClick }) {
   const urgency = deadlineUrgency(task.deadline);
   const isInProgress = task.status === "in-progress";
 
@@ -52,6 +52,10 @@ function TaskCard({ task, onTouchStart, onTouchEnd }) {
       onTouchStart={(e) => onTouchStart(e, task)}
       onTouchEnd={onTouchEnd}
       onTouchMove={onTouchEnd}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        onRightClick(e, task);
+      }}
     >
       <div
         className="task-energy-dot"
@@ -187,6 +191,10 @@ export default function TaskPool({ onRefresh }) {
       clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
     }
+  }
+
+  function handleRightClick(e, task) {
+    setTaskMenu({ task, x: e.clientX, y: e.clientY });
   }
 
   function refreshAll() {
@@ -490,6 +498,7 @@ export default function TaskPool({ onRefresh }) {
                 task={task}
                 onTouchStart={handleTouchStart}
                 onTouchEnd={handleTouchEnd}
+                onRightClick={handleRightClick}
               />
             ))}
           </>
@@ -505,6 +514,7 @@ export default function TaskPool({ onRefresh }) {
                 task={task}
                 onTouchStart={handleTouchStart}
                 onTouchEnd={handleTouchEnd}
+                onRightClick={handleRightClick}
               />
             ))}
           </>
@@ -522,6 +532,7 @@ export default function TaskPool({ onRefresh }) {
                 task={task}
                 onTouchStart={handleTouchStart}
                 onTouchEnd={handleTouchEnd}
+                onRightClick={handleRightClick}
               />
             ))}
           </>
@@ -537,6 +548,7 @@ export default function TaskPool({ onRefresh }) {
                 task={task}
                 onTouchStart={handleTouchStart}
                 onTouchEnd={handleTouchEnd}
+                onRightClick={handleRightClick}
               />
             ))}
           </>
