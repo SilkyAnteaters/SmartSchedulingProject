@@ -116,3 +116,87 @@ def get_brackets_for_date(date_str: str) -> list:
             result.append(b)
 
     return result
+
+
+def create_default_brackets() -> None:
+    """Create sensible default brackets if none exist."""
+    if load_brackets():
+        return  # already has brackets, don't overwrite
+
+    defaults = [
+        {
+            "id": "bracket_default_001",
+            "name": "Morning Focus",
+            "type": "schedule",
+            "color": "green",
+            "start_time": "09:00",
+            "end_time": "11:00",
+            "days": ["monday", "tuesday", "wednesday", "thursday", "friday"],
+            "specific_date": None,
+            "description": "Focused work time — prefer high or deep energy tasks",
+            "reflections": "",
+            "active": True,
+            "created": datetime.now().strftime("%Y-%m-%d"),
+        },
+        {
+            "id": "bracket_default_002",
+            "name": "Afternoon Work",
+            "type": "schedule",
+            "color": "green",
+            "start_time": "13:00",
+            "end_time": "15:00",
+            "days": ["monday", "tuesday", "wednesday", "thursday", "friday"],
+            "specific_date": None,
+            "description": "Medium energy tasks — admin, errands, low effort work",
+            "reflections": "",
+            "active": True,
+            "created": datetime.now().strftime("%Y-%m-%d"),
+        },
+        {
+            "id": "bracket_default_003",
+            "name": "Lunch",
+            "type": "block",
+            "color": "red",
+            "start_time": "12:00",
+            "end_time": "13:00",
+            "days": [
+                "monday",
+                "tuesday",
+                "wednesday",
+                "thursday",
+                "friday",
+                "saturday",
+                "sunday",
+            ],
+            "specific_date": None,
+            "description": "Protected lunch time — no scheduling",
+            "reflections": "",
+            "active": True,
+            "created": datetime.now().strftime("%Y-%m-%d"),
+        },
+        {
+            "id": "bracket_default_004",
+            "name": "Evening",
+            "type": "block",
+            "color": "red",
+            "start_time": "21:00",
+            "end_time": "23:00",
+            "days": [
+                "monday",
+                "tuesday",
+                "wednesday",
+                "thursday",
+                "friday",
+                "saturday",
+                "sunday",
+            ],
+            "specific_date": None,
+            "description": "Wind down time — no scheduling",
+            "reflections": "",
+            "active": True,
+            "created": datetime.now().strftime("%Y-%m-%d"),
+        },
+    ]
+
+    save_brackets(defaults)
+    print("Created default brackets")

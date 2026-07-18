@@ -22,6 +22,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Create default brackets if none exist
+from bracket_manager import create_default_brackets
+
+create_default_brackets()
 # --- Request Models ---
 
 
@@ -127,6 +132,13 @@ class UpdateBracketRequest(BaseModel):
     reflections: Optional[str] = None
     specific_date: Optional[str] = None
     active: Optional[bool] = None
+
+
+class GenerateScheduleRequest(BaseModel):
+    scope: str = "today"
+    energy: int = 3
+    context: Optional[str] = ""
+    target_date: Optional[str] = None
 
 
 # --- Endpoints ---
@@ -1016,6 +1028,23 @@ def get_brackets_for_date_endpoint(date_str: str):
         from bracket_manager import get_brackets_for_date
 
         return {"brackets": get_brackets_for_date(date_str)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/generate-schedule")
+def generate_schedule_endpoint(request: GenerateScheduleRequest):
+    """Generate a proposed schedule using LLM."""
+    try:
+        from generate_schedule import generate_schedule
+
+        result = generate_schedule(
+            scope=request.scope,
+            energy=request.energy,
+            context=request.context,
+            target_date=request.target_date,
+        )
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

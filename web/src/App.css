@@ -1086,3 +1086,139 @@
   flex-direction: column;
   gap: 12px;
 }
+
+.bracket-tab {
+  position: absolute;
+  top: -9px;
+  right: 0;
+  font-size: 10px;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* ── Generate Schedule ── */
+.generate-energy-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── Ghost Blocks ── */
+.ghost-block {
+  opacity: 0.7 !important;
+}
+
+.ghost-label {
+  position: absolute;
+  top: -28px;
+  left: 0;
+  font-size: 11px;
+  color: #3D6B4F;
+  font-weight: 600;
+  white-space: normal;
+  word-wrap: break-word;
+  max-width: 180px;
+  background: rgba(255,255,255,0.95);
+  padding: 3px 8px;
+  border-radius: 3px;
+  border: 1px solid #3D6B4F;
+  pointer-events: none;
+  box-shadow: 0 2px 6px rgba(28,26,23,0.15);
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 200;
+}
+
+.fc-event:hover .ghost-label {
+  opacity: 1;
+}
+
+.fc-event:hover .ghost-label {
+  opacity: 1;
+}
+
+.fc-event.ghost-block .fc-event-main {
+  border: 2px dashed #3D6B4F !important;
+}
+
+/* ── Ghost Action Bar ── */
+.ghost-action-bar {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 30px;
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 4px 20px rgba(28,26,23,0.15);
+  z-index: 50;
+}
+
+.ghost-count {
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+/* ── Ghost Confirm Popover ── */
+.ghost-confirm-popover {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 16px rgba(28,26,23,0.2);
+  padding: 12px 14px;
+  min-width: 180px;
+  text-align: center;
+}
+
+.ghost-confirm-text {
+  font-size: 11px;
+  color: var(--ink-muted);
+  margin-bottom: 4px;
+}
+
+.ghost-confirm-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.ghost-confirm-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.ghost-confirm-cancel {
+  flex: 1;
+  padding: 4px 8px;
+  font-size: 12px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  color: var(--ink-muted);
+}
+
+.ghost-confirm-reject {
+  flex: 1;
+  padding: 4px 8px;
+  font-size: 12px;
+  background: var(--red);
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  color: white;
+}

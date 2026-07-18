@@ -8,6 +8,7 @@ import CheckInModal from "./components/CheckInModal";
 import AddTaskModal from "./components/AddTaskModal";
 import BracketModal from "./components/BracketModal";
 import BracketManager from "./components/BracketManager";
+import GenerateScheduleModal from "./components/GenerateScheduleModal";
 
 const API = `http://${window.location.hostname}:8000`;
 
@@ -25,6 +26,9 @@ function App() {
   const [viewedDate, setViewedDate] = useState(null);
   const [newBracket, setNewBracket] = useState(null);
   const [showBrackets, setShowBrackets] = useState(false);
+  const [showGenerateSchedule, setShowGenerateSchedule] = useState(false);
+  const ghostBlocksRef2 = useRef([]);
+  const [ghostCount, setGhostCount] = useState(0);
 
   const handleRefresh = useCallback(() => {
     calendarGridRef.current?.refresh();
@@ -48,6 +52,29 @@ function App() {
 
   const handleBracketCreate = useCallback((info) => {
     setNewBracket(info);
+  }, []);
+
+  const handleGenerated = useCallback((placements) => {
+    if (!placements) return;
+    ghostBlocksRef2.current = placements;
+    setGhostCount(placements.length);
+    calendarGridRef.current?.setGhostBlocks(placements);
+    setMobileTab("calendar");
+  }, []);
+
+  const handleGhostReject = useCallback((idx) => {
+    ghostBlocksRef2.current = ghostBlocksRef2.current.filter(
+      (_, i) => i !== idx,
+    );
+    setGhostCount(ghostBlocksRef2.current.length);
+    calendarGridRef.current?.updateGhostBlocks(ghostBlocksRef2.current);
+  }, []);
+
+  const handleGhostMove = useCallback((idx, date, startTime) => {
+    ghostBlocksRef2.current = ghostBlocksRef2.current.map((b, i) =>
+      i === idx ? { ...b, date, start_time: startTime } : b,
+    );
+    calendarGridRef.current?.updateGhostBlocks(ghostBlocksRef2.current);
   }, []);
 
   return (
@@ -231,6 +258,8 @@ function App() {
             onDateClick={handleDateClick}
             onDateChange={handleDateChange}
             onBracketCreate={handleBracketCreate}
+            onGhostReject={handleGhostReject}
+            onGhostMove={handleGhostMove}
           />
         </section>
 
@@ -271,6 +300,13 @@ function App() {
 
           <button className="btn-ghost" onClick={() => setShowBrackets(true)}>
             ⬡ Brackets
+          </button>
+
+          <button
+            className="btn-primary"
+            onClick={() => setShowGenerateSchedule(true)}
+          >
+            ✨ Generate
           </button>
 
           {showWhatNow && window.innerWidth <= 1024 && (
@@ -345,6 +381,53 @@ function App() {
           onClose={() => setShowBrackets(false)}
           onSaved={() => calendarGridRef.current?.refresh()}
         />
+      )}
+
+      {showGenerateSchedule && (
+        <GenerateScheduleModal
+          onClose={() => setShowGenerateSchedule(false)}
+          onGenerated={handleGenerated}
+          currentEnergy={energy}
+        />
+      )}
+
+      {ghostCount > 0 && (
+        <div className="ghost-action-bar">
+          <span className="ghost-count">✨ {ghostCount} suggested blocks</span>
+          <button
+            className="btn-ghost"
+            onClick={() => {
+              ghostBlocksRef2.current = [];
+              setGhostCount(0);
+              calendarGridRef.current?.clearGhostBlocks();
+            }}
+          >
+            Discard All
+          </button>
+          <button
+            className="btn-primary"
+            onClick={async () => {
+              for (const p of ghostBlocksRef2.current) {
+                await fetch(`${API}/schedule-task`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    task_title: p.title,
+                    duration_minutes: p.duration_minutes,
+                    preferred_start: p.start_time,
+                    preferred_date: p.date,
+                  }),
+                });
+              }
+              ghostBlocksRef2.current = [];
+              setGhostCount(0);
+              calendarGridRef.current?.clearGhostBlocks();
+              handleRefresh();
+            }}
+          >
+            Commit All
+          </button>
+        </div>
       )}
     </div>
   );
