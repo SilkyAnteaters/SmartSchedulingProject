@@ -1087,9 +1087,15 @@
   gap: 12px;
 }
 
+/* Force bracket tabs above other events */
+.fc-bg-event {
+  overflow: visible !important;
+  z-index: 1 !important;
+}
+
 .bracket-tab {
   position: absolute;
-  top: -9px;
+  top: -18px;
   right: 0;
   font-size: 10px;
   color: white;
@@ -1099,6 +1105,7 @@
   letter-spacing: 0.03em;
   white-space: nowrap;
   pointer-events: none;
+  z-index: 999 !important;
 }
 
 /* ── Generate Schedule ── */
@@ -1221,4 +1228,26 @@
   border-radius: var(--radius);
   cursor: pointer;
   color: white;
+}
+
+/* ── Short Task Tooltip ── */
+.short-task-tooltip {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  font-size: 11px;
+  color: white;
+  background: #5A8FA6;
+  padding: 4px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 200;
+  box-shadow: 0 2px 6px rgba(28,26,23,0.15);
+}
+
+.fc-event:hover .short-task-tooltip {
+  opacity: 1;
 }

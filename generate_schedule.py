@@ -277,10 +277,11 @@ Rules:
 6. In-progress tasks should be scheduled for their remaining duration not full duration
 7. Leave at least 5 minutes buffer between ALL tasks (both existing and ghost blocks)
 8. When placing multiple tasks back to back, add 5 minutes between each one
-9. Tasks placed inside a bracket must START and END within that bracket's time range
-10. If a task is longer than the available bracket time, place it at the bracket start anyway — the user will use Stopping Now when the bracket ends
-11. Working hours are 8am-10pm unless brackets suggest otherwise
-12. Current user energy is {energy_desc} — adjust task difficulty accordingly
+9. STRICT: Only schedule tasks between 08:00 and 22:00. Never schedule anything before 08:00 or after 22:00. This is a hard constraint.
+10. Tasks placed inside a bracket must START and END within that bracket's time range
+11. If a task is longer than the available bracket time, place it at the bracket start anyway — the user will use Stopping Now when the bracket ends
+12. Working hours are 8am-10pm unless brackets suggest otherwise
+13. Current user energy is {energy_desc} — adjust task difficulty accordingly
 
 Return a JSON array like this:
 [
@@ -349,6 +350,28 @@ Return ONLY the JSON array, no other text."""
         adjusted.append(placement)
 
     placements = adjusted
+
+    # Filter out placements outside working hours (8am - 10pm)
+    valid_placements = []
+    for p in placements:
+        try:
+            start_hour = int(p["start_time"].split(":")[0])
+            end_minutes = (
+                start_hour * 60
+                + int(p["start_time"].split(":")[1])
+                + p["duration_minutes"]
+            )
+            end_hour = end_minutes // 60
+            if start_hour >= 8 and end_hour <= 22:
+                valid_placements.append(p)
+            else:
+                print(
+                    f"Filtered out-of-hours placement: {p['title']} at {p['start_time']}"
+                )
+        except Exception:
+            valid_placements.append(p)
+
+    placements = valid_placements
 
     return {
         "status": "generated",

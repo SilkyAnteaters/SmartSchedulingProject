@@ -185,6 +185,16 @@ function to24hr(timeStr) {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:00`;
 }
 
+function parseDurationString(duration) {
+  if (!duration) return 60;
+  let mins = 0;
+  const hrMatch = duration.match(/([\d.]+)\s*hr/);
+  const minMatch = duration.match(/(\d+)\s*min/);
+  if (hrMatch) mins += parseFloat(hrMatch[1]) * 60;
+  if (minMatch) mins += parseInt(minMatch[1]);
+  return mins || 60;
+}
+
 const CalendarGrid = forwardRef(function CalendarGrid(
   {
     view,
@@ -260,7 +270,15 @@ const CalendarGrid = forwardRef(function CalendarGrid(
       ghostBlocksRef.current = [];
       eventsCache = [];
       bracketsCache = [];
-      calendarRef.current?.getApi().refetchEvents();
+      const api = calendarRef.current?.getApi();
+      if (!api) return;
+      // Remove ghost events immediately before refetch
+      const toRemove = [];
+      api.getEvents().forEach((e) => {
+        if (e.id.startsWith("ghost_")) toRemove.push(e);
+      });
+      toRemove.forEach((e) => e.remove());
+      api.refetchEvents();
     },
   }));
 
@@ -359,6 +377,10 @@ const CalendarGrid = forwardRef(function CalendarGrid(
         droppable={true}
         eventInteractive={true}
         datesSet={(info) => {
+          // Clear cache so events refetch for new date range
+          eventsCache = [];
+          bracketsCache = [];
+
           const start = info.start;
           const viewType = info.view.type;
           // Notify parent of current viewed date
@@ -560,7 +582,34 @@ const CalendarGrid = forwardRef(function CalendarGrid(
                 ? "rgba(61, 107, 79, 0.7)"
                 : "rgba(139, 46, 46, 0.7)";
             el.appendChild(tab);
+
+            // Force tab above other events
+            el.style.overflow = "visible";
+            el.style.zIndex = "999";
+            if (el.parentElement) el.parentElement.style.overflow = "visible";
+
             return;
+          }
+
+          // Hover tooltip for short tasks
+          if (info.event.extendedProps.type === "task") {
+            const duration = info.event.extendedProps.duration;
+            if (duration) {
+              const mins = parseDurationString(duration);
+              if (mins <= 10) {
+                el.style.overflow = "visible";
+                // Hide the default text since it's unreadable at this size
+                const titleEl = el.querySelector(".fc-event-title");
+                if (titleEl) titleEl.style.display = "none";
+                const timeEl = el.querySelector(".fc-event-time");
+                if (timeEl) timeEl.style.display = "none";
+
+                const tooltip = document.createElement("div");
+                tooltip.className = "short-task-tooltip";
+                tooltip.innerHTML = `${info.event.title}<br><span style="opacity:0.7;font-size:10px">${duration}</span>`;
+                el.appendChild(tooltip);
+              }
+            }
           }
 
           // Desktop: right-click for regular events

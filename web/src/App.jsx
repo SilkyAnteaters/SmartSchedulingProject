@@ -422,7 +422,6 @@ function App() {
               ghostBlocksRef2.current = [];
               setGhostCount(0);
               calendarGridRef.current?.clearGhostBlocks();
-              handleRefresh();
             }}
           >
             Commit All
