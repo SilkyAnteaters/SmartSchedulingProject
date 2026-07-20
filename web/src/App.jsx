@@ -282,6 +282,17 @@ function App() {
                   >
                     💡 Consolidate Ideas
                   </button>
+                  <div className="context-divider" />
+                  <button
+                    onClick={async () => {
+                      setShowAdmin(false);
+                      const res = await fetch(`${API}/check-stale-scheduled`);
+                      const data = await res.json();
+                      alert(data.message);
+                    }}
+                  >
+                    🕵️ Check Stale Scheduled
+                  </button>
                 </div>
               </>
             )}

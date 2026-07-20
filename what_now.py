@@ -17,7 +17,7 @@ def get_all_tasks():
     # read inbox
     tasks.extend(read_tasks("inbox"))
 
-   # read tasks folder recursively
+    # read tasks folder recursively
     for file in TASKS.rglob("*.md"):
         if file.is_file():
             post = frontmatter.load(file)
@@ -26,30 +26,40 @@ def get_all_tasks():
                 continue
             if post.metadata.get("status") == "done":
                 continue
-        
-            tasks.append({
-                "file": file.name,
-                "metadata": post.metadata,
-                "notes": post.content,
-                "scheduling_instructions": post.metadata.get("scheduling_instructions", "")
-            })
+
+            from reschedule import is_blocked
+
+            if is_blocked(post.metadata):
+                continue
+
+            tasks.append(
+                {
+                    "file": file.name,
+                    "metadata": post.metadata,
+                    "notes": post.content,
+                    "scheduling_instructions": post.metadata.get(
+                        "scheduling_instructions", ""
+                    ),
+                }
+            )
     return tasks
+
 
 def format_tasks_for_prompt(tasks):
     """Format tasks into a readable string for the LLM prompt."""
     if not tasks:
         return "No tasks found."
-    
+
     today = datetime.now().strftime("%Y-%m-%d")
-    
+
     formatted = []
     for task in tasks:
         m = task["metadata"]
-        
+
         # Skip done tasks
         if m.get("status") == "done":
             continue
-            
+
         entry = f"""
 - {m.get('title', task['file'])}
   status: {m.get('status', 'unknown')}
@@ -59,15 +69,15 @@ def format_tasks_for_prompt(tasks):
   deadline: {m.get('deadline', 'none')}
   preferred days: {m.get('preferred_days', [])}
   blocked by: {m.get('blocked_by', [])}"""
-        
-        if m.get('planned_date') == today:
+
+        if m.get("planned_date") == today:
             entry += "\n  ⭐ PLANNED FOR TODAY — prioritize this"
-        
-        if task.get('scheduling_instructions'):
+
+        if task.get("scheduling_instructions"):
             entry += f"\n  scheduling notes: {task['scheduling_instructions']}"
 
         formatted.append(entry)
-    
+
     return "\n".join(formatted)
 
 
@@ -83,7 +93,7 @@ def what_now(current_energy: str = None, slots_remaining: str = None):
     runtime = load_runtime_context()
     tasks = get_all_tasks()
     recent_checkins = get_recent_checkins(days=3)
-    
+
     # Load calendar data
     todays_events = get_todays_events()
     free_slots = get_free_slots(todays_events)
@@ -92,14 +102,16 @@ def what_now(current_energy: str = None, slots_remaining: str = None):
     now = datetime.now()
     urgent_warning = ""
     for event in todays_events:
-        if event['all_day']:
+        if event["all_day"]:
             continue
-        event_start = datetime.fromisoformat(event['start'].replace('Z', ''))
+        event_start = datetime.fromisoformat(event["start"].replace("Z", ""))
         event_start = event_start.replace(tzinfo=None)
         minutes_until = (event_start - now).seconds // 60
-    
+
         if 0 < minutes_until <= 30:
-            urgent_warning = f"⚠️ WARNING: {event['title']} starts in {minutes_until} minutes!\n"
+            urgent_warning = (
+                f"⚠️ WARNING: {event['title']} starts in {minutes_until} minutes!\n"
+            )
             break
 
     # Format calendar context
@@ -125,13 +137,17 @@ def what_now(current_energy: str = None, slots_remaining: str = None):
 
     if len(tasks) == 1:
         task = tasks[0]
-        title = task['metadata'].get('title', 'your task')
-        duration = task['metadata'].get('duration_estimated', 'unknown duration')
+        title = task["metadata"].get("title", "your task")
+        duration = task["metadata"].get("duration_estimated", "unknown duration")
         return f"You only have one task right now:\n\n→ {title} ({duration})\n\nAdd more tasks to get multiple options."
 
     # format for prompt
     task_list = format_tasks_for_prompt(tasks)
-    checkin_summary = "\n---\n".join(recent_checkins[-3:]) if recent_checkins else "No recent checkins"
+    checkin_summary = (
+        "\n---\n".join(recent_checkins[-3:])
+        if recent_checkins
+        else "No recent checkins"
+    )
 
     # build energy context
     energy_context = ""
@@ -142,7 +158,7 @@ def what_now(current_energy: str = None, slots_remaining: str = None):
 
     today = now.strftime("%Y-%m-%d")
 
-    max_slot = max([s['duration_minutes'] for s in free_slots]) if free_slots else 120
+    max_slot = max([s["duration_minutes"] for s in free_slots]) if free_slots else 120
 
     prompt = f"""
 {urgent_warning}
@@ -188,9 +204,8 @@ Why: [one sentence]
 
 Keep it short, scannable, and non-judgmental.
 """
-    
-    return ask(prompt)
 
+    return ask(prompt)
 
 
 if __name__ == "__main__":
@@ -199,18 +214,14 @@ if __name__ == "__main__":
     for t in tasks:
         print(f" - {t['metadata'].get('title', t['file'])}")
 
-
-
     print("=== What Should I Do Now? ===\n")
-    
+
     # Test without energy input first
     response = what_now()
     print(response)
-    
+
     print("\n=== With Energy Context ===\n")
-    
+
     # Test with energy and slots
-    response = what_now(
-        current_energy="high"
-    )
+    response = what_now(current_energy="high")
     print(response)

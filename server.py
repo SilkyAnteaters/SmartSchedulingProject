@@ -156,6 +156,11 @@ class ToggleHabitRequest(BaseModel):
     date_str: Optional[str] = None
 
 
+class SplitTaskRequest(BaseModel):
+    task_id: str
+    first_chunk_minutes: int
+
+
 # --- Endpoints ---
 
 
@@ -288,7 +293,7 @@ def get_task_titles():
 def get_current_tasks():
     """Return current unfinished tasks as a simple list."""
     try:
-        from config import TASKS, INBOX
+        from config import TASKS, INBOX, VAULT_PATH
         import frontmatter
 
         tasks = []
@@ -305,10 +310,14 @@ def get_current_tasks():
             if status not in ["done"]:
                 tasks.append(
                     {
+                        "id": post.metadata.get("id"),
                         "title": title,
                         "status": status,
                         "energy": post.metadata.get("energy_required", "unknown"),
                         "file": filepath.name,
+                        "vault_path": str(
+                            filepath.relative_to(VAULT_PATH).with_suffix("")
+                        ).replace("\\", "/"),
                         "planned_date": str(post.metadata.get("planned_date", ""))
                         or None,
                         "duration": post.metadata.get("duration_estimated", ""),
@@ -745,6 +754,7 @@ def whats_coming(scope: str = "today_remaining"):
             items.append(
                 {
                     "type": "task",
+                    "id": post.metadata.get("id"),
                     "title": title,
                     "calendar": None,
                     "start_dt": task_dt,
@@ -781,6 +791,7 @@ def whats_coming(scope: str = "today_remaining"):
             planned_items.append(
                 {
                     "type": "planned",
+                    "id": post.metadata.get("id"),
                     "title": p_title,
                     "date": p_date,
                     "energy": post.metadata.get("energy_required", "unknown"),
@@ -1122,6 +1133,60 @@ def toggle_habit_endpoint(request: ToggleHabitRequest):
 
         new_status = toggle_habit(request.habit_id, request.date_str)
         return {"status": "toggled", "done": new_status}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/check-stale-scheduled")
+def check_stale_scheduled():
+    """Find tasks marked scheduled with a scheduled_date in the past."""
+    try:
+        from config import TASKS, INBOX
+        import frontmatter
+        from datetime import datetime
+
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        stale = []
+
+        for filepath in list(TASKS.rglob("*.md")) + list(INBOX.rglob("*.md")):
+            post = frontmatter.load(filepath)
+            if post.metadata.get("status") != "scheduled":
+                continue
+            scheduled_date = str(post.metadata.get("scheduled_date", ""))
+            if scheduled_date and scheduled_date < today_str:
+                stale.append(
+                    {
+                        "title": post.metadata.get("title", ""),
+                        "scheduled_date": scheduled_date,
+                        "file": filepath.name,
+                    }
+                )
+
+        if not stale:
+            message = "No stale scheduled tasks found."
+        else:
+            lines = [f"⚠️ {len(stale)} stale scheduled task(s):"]
+            for s in stale:
+                lines.append(f"  {s['title']} — scheduled_date: {s['scheduled_date']}")
+            message = "\n".join(lines)
+
+        return {"status": "ok", "stale": stale, "message": message}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/split-task")
+def split_task_endpoint(request: SplitTaskRequest):
+    """Split a task into two linked chunks."""
+    try:
+        from split_task import split_task
+
+        result = split_task(request.task_id, request.first_chunk_minutes)
+        if result["status"] == "error":
+            raise HTTPException(status_code=400, detail=result["message"])
+        return result
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

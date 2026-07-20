@@ -1,6 +1,7 @@
 import json
 import re
 import frontmatter
+import uuid
 from pathlib import Path
 from datetime import datetime, timezone
 from llm import ask
@@ -135,6 +136,7 @@ def create_task_file(task_data: dict, destination: Path = None) -> Path:
 
     # build the frontmatter
     metadata = {
+        "id": f"task_{uuid.uuid4().hex[:8]}",
         "title": title,
         "duration_estimated": task_data.get("duration_estimated", ""),
         "priority": task_data.get("priority", "medium"),

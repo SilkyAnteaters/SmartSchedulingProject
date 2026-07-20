@@ -284,6 +284,7 @@ Rules:
 11. If a task is longer than the available bracket time, place it at the bracket start anyway — the user will use Stopping Now when the bracket ends
 12. Working hours are 8am-10pm unless brackets suggest otherwise
 13. Current user energy is {energy_desc} — adjust task difficulty accordingly
+14. Some tasks are split into linked parts (titles ending in "(Part 1)", "(Part 2)", etc.) — if both a task and its earlier part(s) are being scheduled today, always place the earlier part at an earlier time than the later part, with at least 15 minutes between them for a break
 
 Return a JSON array like this:
 [

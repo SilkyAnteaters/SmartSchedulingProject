@@ -46,6 +46,43 @@ def find_task_file(task_title: str) -> Path | None:
     return None
 
 
+def find_task_by_id(task_id: str) -> Path | None:
+    """
+    Find a task file by its stable id field.
+    Preferred over find_task_file (title-based) for anything built
+    after the Stable Task ID system — falls back to None if not found,
+    caller can fall back to title matching if needed for pre-migration code paths.
+    """
+    all_files = list(TASKS.rglob("*.md")) + list(INBOX.rglob("*.md"))
+
+    for filepath in all_files:
+        post = frontmatter.load(filepath)
+        if post.metadata.get("id") == task_id:
+            return filepath
+
+    return None
+
+
+def is_blocked(metadata: dict) -> bool:
+    """
+    Check whether a task's blocked_by dependencies are still incomplete.
+    Returns True if ANY blocking task is not yet done.
+    """
+    blocked_by = metadata.get("blocked_by") or []
+    if not blocked_by:
+        return False
+
+    for blocking_id in blocked_by:
+        filepath = find_task_by_id(blocking_id)
+        if not filepath:
+            continue  # dangling reference — don't block on something that doesn't exist
+        blocking_post = frontmatter.load(filepath)
+        if blocking_post.metadata.get("status") != "done":
+            return True
+
+    return False
+
+
 def panic_button(reason: str = "") -> str:
     """
     Panic button - nothing gets done, redistribute without judgment.

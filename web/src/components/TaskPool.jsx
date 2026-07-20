@@ -82,6 +82,16 @@ function TaskCard({ task, onTouchStart, onTouchEnd, onRightClick }) {
           </span>
         )}
       </div>
+      {task.vault_path && (
+        <a
+          className="task-obsidian-link"
+          href={`obsidian://open?vault=SmartScheduler&file=${encodeURIComponent(`${task.vault_path}#Notes`)}`}
+          onClick={(e) => e.stopPropagation()}
+          title="Open in Obsidian"
+        >
+          📓
+        </a>
+      )}
       {task.status === "scheduled" && (
         <span className="task-scheduled-badge">●</span>
       )}
@@ -430,6 +440,35 @@ export default function TaskPool({ onRefresh, viewedDate }) {
     refreshAll();
   }
 
+  async function handleTaskSplit(task) {
+    if (!task.id) {
+      alert("This task doesn't have an id yet — try refreshing.");
+      return;
+    }
+    const minutesStr = prompt(
+      `Split "${task.title}" — how many minutes for the first chunk?`,
+    );
+    if (!minutesStr) return;
+    const minutes = parseInt(minutesStr, 10);
+    if (isNaN(minutes) || minutes <= 0) {
+      alert("Enter a valid number of minutes.");
+      return;
+    }
+
+    const res = await fetch(`${API}/split-task`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ task_id: task.id, first_chunk_minutes: minutes }),
+    });
+    const data = await res.json();
+    if (data.status === "split") {
+      onRefresh();
+    } else {
+      alert(data.message || "Failed to split task.");
+    }
+    setTaskMenu(null);
+  }
+
   async function handleTaskUnschedule(task) {
     setTaskMenu(null);
     await fetch(`${API}/unschedule-task`, {
@@ -764,6 +803,9 @@ export default function TaskPool({ onRefresh, viewedDate }) {
                 <div className="context-divider" />
                 <button onClick={() => handleTaskPlan(taskMenu.task)}>
                   📋 Plan for Day
+                </button>
+                <button onClick={() => handleTaskSplit(taskMenu.task)}>
+                  ✂️ Split Task
                 </button>
                 {/* Only show Unschedule if task is already scheduled */}
                 {taskMenu.task.status === "scheduled" && (
