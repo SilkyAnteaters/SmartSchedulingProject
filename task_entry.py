@@ -52,6 +52,8 @@ If the user says a time like "at 6" or "at 9" with no AM/PM specified:
 - Default to PM for times 1-11 if context suggests daytime activity
 - Default to AM for times 1-11 if context suggests morning activity (breakfast, wake up etc.)
 
+If the person implies working on or starting this task on a DIFFERENT day than its deadline (e.g. "prep the presentation Wednesday, it's due Friday"), set suggested_schedule_date to that earlier working day. Only set this when such a distinction is actually implied — leave it null if the deadline and the intended working day are the same, or if no scheduling day was mentioned at all.
+
 Parse the following into a task. Return ONLY a JSON object with these exact fields:
 {{
     "title": "task title",
@@ -64,6 +66,7 @@ Parse the following into a task. Return ONLY a JSON object with these exact fiel
     "slot_level": 0-9,
     "preferred_days": ["monday", "wednesday"] or [],
     "preferred_time": "e.g. morning or null",
+    "suggested_schedule_date": "YYYY-MM-DD or null",
     "parsed_datetime": "e.g. 2026-07-17T15:00:00 if a specific time was mentioned, or null",
     "blocked_by": [],
     "tags": ["tag1", "tag2"],
@@ -153,6 +156,7 @@ def create_task_file(task_data: dict, destination: Path = None) -> Path:
         "duration_estimated": task_data.get("duration_estimated", ""),
         "priority": task_data.get("priority", "medium"),
         "deadline": deadline,
+        "suggested_schedule_date": task_data.get("suggested_schedule_date"),
         "planned_date": task_data.get("planned_date"),
         "recurrence": task_data.get("recurrence"),
         "status": "unscheduled",
@@ -253,6 +257,8 @@ When the user says "tomorrow" the deadline is exactly {(now + __import__('dateti
 When the user says "this week" the deadline is the coming Sunday.
 If the user mentions a specific time the task is due by (e.g. "by 3pm", "before my 2pm meeting", "due at noon"), include that time in the deadline using YYYY-MM-DDTHH:MM (24-hour format), e.g. "2026-07-26T15:00". If no specific time is mentioned, use YYYY-MM-DD only.
 
+If the person implies working on or starting this task on a DIFFERENT day than its deadline (e.g. "prep the presentation Wednesday, it's due Friday"), set suggested_schedule_date to that earlier working day. Only set this when such a distinction is actually implied — leave it null if the deadline and the intended working day are the same, or if no scheduling day was mentioned at all.
+
 Parse the following into a task. Return ONLY a JSON object with these exact fields:
 {{
     "title": "task title",
@@ -264,6 +270,7 @@ Parse the following into a task. Return ONLY a JSON object with these exact fiel
     "slot_level": 0-9,
     "preferred_days": ["monday", "wednesday"] or [],
     "preferred_time": "e.g. morning or null",
+    "suggested_schedule_date": "YYYY-MM-DD or null",
     "blocked_by": [],
     "tags": ["tag1", "tag2"],
     "folder": "which folder this belongs in e.g. tasks/work/deep-work",
