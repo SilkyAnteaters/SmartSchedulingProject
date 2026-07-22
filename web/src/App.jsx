@@ -15,6 +15,7 @@ import HabitsList from "./components/HabitsList";
 import BasketPanel from "./components/BasketPanel";
 
 const API = `http://${window.location.hostname}:8000`;
+const ENERGY_LABELS = ["Cantrip", "Low", "Medium", "High", "Deep"];
 
 function App() {
   const [view, setView] = useState("Day");
@@ -40,6 +41,7 @@ function App() {
   const [habitBadgeCount, setHabitBadgeCount] = useState(0);
   const [showHabits, setShowHabits] = useState(false);
   const [openBasket, setOpenBasket] = useState(null);
+  const [hoveredEnergy, setHoveredEnergy] = useState(null);
 
   const handleRefresh = useCallback(() => {
     calendarGridRef.current?.refresh();
@@ -306,12 +308,16 @@ function App() {
           </div>
 
           <div className="energy-bar">
-            <span className="energy-label">Energy</span>
+            <span className="energy-label">
+              Energy: {ENERGY_LABELS[(hoveredEnergy ?? energy) - 1]}
+            </span>
             {[1, 2, 3, 4, 5].map((i) => (
               <div
                 key={i}
                 className={i <= energy ? "energy-pip filled" : "energy-pip"}
                 onClick={() => setEnergy(i)}
+                onMouseEnter={() => setHoveredEnergy(i)}
+                onMouseLeave={() => setHoveredEnergy(null)}
                 style={{ cursor: "pointer" }}
               />
             ))}
@@ -556,6 +562,7 @@ function App() {
           onClose={() => setShowGenerateSchedule(false)}
           onGenerated={handleGenerated}
           currentEnergy={energy}
+          viewedDate={viewedDate}
         />
       )}
 

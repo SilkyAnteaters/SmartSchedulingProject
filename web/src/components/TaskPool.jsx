@@ -576,10 +576,12 @@ export default function TaskPool({ onRefresh, viewedDate }) {
         return taskList.filter((t) => {
           const u = deadlineUrgency(t.deadline);
           const dueSoon = u && u.days <= 3;
-          const highPriority =
-            t.priority === "high" || t.priority === "critical";
+          const highPriorityAndNear =
+            (t.priority === "high" || t.priority === "critical") &&
+            u &&
+            u.days <= 7;
           const plannedToday = t.planned_date === todayStr;
-          return dueSoon || highPriority || plannedToday;
+          return dueSoon || highPriorityAndNear || plannedToday;
         });
       default:
         return taskList;

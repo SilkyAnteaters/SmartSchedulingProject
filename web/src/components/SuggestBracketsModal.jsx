@@ -5,11 +5,21 @@ const API = `http://${window.location.hostname}:8000`;
 export default function SuggestBracketsModal({
   onClose,
   onGenerated,
-  targetDate,
+  viewedDate,
 }) {
   const [context, setContext] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState("");
+  const [dayOverride, setDayOverride] = React.useState(null); // null = use viewedDate, or "today"/"tomorrow"
+
+  const targetDate = React.useMemo(() => {
+    if (dayOverride === "today" || dayOverride === "tomorrow") {
+      const d = new Date();
+      if (dayOverride === "tomorrow") d.setDate(d.getDate() + 1);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    }
+    return viewedDate; // fallback to whatever day is currently navigated to
+  }, [dayOverride, viewedDate]);
 
   async function handleSuggest() {
     setLoading(true);
@@ -49,6 +59,29 @@ export default function SuggestBracketsModal({
         </div>
         <div className="modal-body">
           <div className="checkin-form">
+            <div
+              className="bracket-type-toggle"
+              style={{ marginBottom: "8px" }}
+            >
+              <button
+                className={dayOverride === null ? "active green" : ""}
+                onClick={() => setDayOverride(null)}
+              >
+                Calendar Day
+              </button>
+              <button
+                className={dayOverride === "today" ? "active green" : ""}
+                onClick={() => setDayOverride("today")}
+              >
+                Today
+              </button>
+              <button
+                className={dayOverride === "tomorrow" ? "active green" : ""}
+                onClick={() => setDayOverride("tomorrow")}
+              >
+                Tomorrow
+              </button>
+            </div>
             <div className="form-field">
               <label>
                 Anything to note for today?{" "}

@@ -616,7 +616,10 @@ def complete_task(
             _spawn_next_recurrence(post, filepath)
 
         # LLM decides keep or delete
-        _llm_keep_or_delete(post, done_path)
+        kept = _llm_keep_or_delete(post, done_path)
+
+        # Preserve minimal pattern data regardless of keep/delete outcome
+        log_completed_task(post, kept)
 
     else:
         print(f"Could not find task matching: {task_title}")
@@ -633,10 +636,10 @@ def complete_task(
     return message
 
 
-def _llm_keep_or_delete(post: object, done_path) -> None:
+def _llm_keep_or_delete(post: object, done_path) -> bool:
     """
     Ask LLM whether to keep or delete a completed task file.
-    Deletes from done/ if disposable.
+    Deletes from done/ if disposable. Returns True if kept, False if deleted.
     """
     from llm import ask
 
@@ -664,10 +667,13 @@ Reply with ONLY one word: keep or delete"""
         if "delete" in response:
             done_path.unlink()
             print(f"LLM decided: delete {title}")
+            return False
         else:
             print(f"LLM decided: keep {title}")
+            return True
     except Exception as e:
         print(f"LLM keep/delete failed, keeping file: {e}")
+        return True
 
 
 def _spawn_next_recurrence(post: object, original_filepath) -> None:
@@ -853,6 +859,46 @@ def unschedule_task(task_title: str) -> str:
     message = f"'{task_title}' unscheduled."
     print(message)
     return message
+
+
+def log_completed_task(post, kept: bool) -> None:
+    """
+    Append a lightweight record of a completed task to the
+    Completed Task Preservation Log — feeds future pattern analysis
+    (actual vs estimated duration, task type patterns) without
+    needing to keep full markdown files around forever.
+    """
+    from config import VAULT_PATH
+    import json
+
+    log_path = VAULT_PATH / "system" / "completed_log.json"
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+
+    entry = {
+        "id": post.metadata.get("id"),
+        "title": post.metadata.get("title", ""),
+        "completed": post.metadata.get("completed"),
+        "duration_estimated": post.metadata.get("duration_estimated"),
+        "duration_actual": post.metadata.get("duration_actual"),
+        "energy_required": post.metadata.get("energy_required"),
+        "tags": post.metadata.get("tags", []),
+        "folder": post.metadata.get("folder", ""),
+        "kept": kept,
+    }
+
+    if log_path.exists():
+        with open(log_path, "r", encoding="utf-8") as f:
+            try:
+                log = json.load(f)
+            except json.JSONDecodeError:
+                log = []
+    else:
+        log = []
+
+    log.append(entry)
+
+    with open(log_path, "w", encoding="utf-8") as f:
+        json.dump(log, f, indent=2)
 
 
 if __name__ == "__main__":

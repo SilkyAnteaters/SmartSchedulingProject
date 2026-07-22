@@ -213,8 +213,16 @@ export default function BracketManager({ onClose, onSaved }) {
     onSaved();
   }
 
-  const greenBrackets = brackets.filter((b) => b.color === "green");
-  const redBrackets = brackets.filter((b) => b.color === "red");
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+
+  const visibleBrackets = brackets.filter((b) => {
+    if (b.specific_date && b.specific_date < todayStr) return false;
+    return true;
+  });
+
+  const greenBrackets = visibleBrackets.filter((b) => b.color === "green");
+  const redBrackets = visibleBrackets.filter((b) => b.color === "red");
 
   return (
     <>

@@ -2,16 +2,35 @@ import React from "react";
 
 const API = `http://${window.location.hostname}:8000`;
 
+const ENERGY_DESCRIPTIONS = {
+  1: "Very low - cantrip tasks only",
+  2: "Low - light tasks preferred",
+  3: "Medium - normal mix",
+  4: "High - can handle demanding tasks",
+  5: "Peak - ready for deep work",
+};
+
 export default function GenerateScheduleModal({
   onClose,
   onGenerated,
   currentEnergy,
+  viewedDate,
 }) {
   const [scope, setScope] = React.useState("today");
   const [energy, setEnergy] = React.useState(currentEnergy || 3);
   const [context, setContext] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState("");
+  const [dayOverride, setDayOverride] = React.useState(null);
+
+  const targetDate = React.useMemo(() => {
+    if (dayOverride === "today" || dayOverride === "tomorrow") {
+      const d = new Date();
+      if (dayOverride === "tomorrow") d.setDate(d.getDate() + 1);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    }
+    return viewedDate;
+  }, [dayOverride, viewedDate]);
 
   async function handleGenerate() {
     setLoading(true);
@@ -21,7 +40,12 @@ export default function GenerateScheduleModal({
       const res = await fetch(`${API}/generate-schedule`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scope, energy, context }),
+        body: JSON.stringify({
+          scope,
+          energy,
+          context,
+          target_date: targetDate,
+        }),
       });
       const data = await res.json();
 
@@ -82,6 +106,31 @@ export default function GenerateScheduleModal({
               </div>
             </div>
 
+            {/* Day */}
+            <div className="form-field">
+              <label>Starting from</label>
+              <div className="checkin-mode-toggle">
+                <button
+                  className={dayOverride === null ? "active" : ""}
+                  onClick={() => setDayOverride(null)}
+                >
+                  Calendar Day
+                </button>
+                <button
+                  className={dayOverride === "today" ? "active" : ""}
+                  onClick={() => setDayOverride("today")}
+                >
+                  Today
+                </button>
+                <button
+                  className={dayOverride === "tomorrow" ? "active" : ""}
+                  onClick={() => setDayOverride("tomorrow")}
+                >
+                  Tomorrow
+                </button>
+              </div>
+            </div>
+
             {/* Energy */}
             <div className="form-field">
               <label>Energy today</label>
@@ -101,7 +150,7 @@ export default function GenerateScheduleModal({
                     marginLeft: "8px",
                   }}
                 >
-                  {["", "Very Low", "Low", "Medium", "High", "Peak"][energy]}
+                  {ENERGY_DESCRIPTIONS[energy]}
                 </span>
               </div>
             </div>
