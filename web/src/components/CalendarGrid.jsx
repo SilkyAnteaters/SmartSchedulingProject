@@ -46,20 +46,23 @@ async function fetchBrackets(dateRange) {
       const matchesDate = bracket.specific_date === dateStr;
 
       if (matchesDay || matchesDate) {
+        const isBasket = bracket.mode === "basket";
         events.push({
           id: `bracket_${bracket.id}_${dateStr}`,
           title: bracket.name,
           start: `${dateStr}T${bracket.start_time}:00`,
           end: `${dateStr}T${bracket.end_time}:00`,
           display: "background",
-          backgroundColor:
-            bracket.color === "green"
+          backgroundColor: isBasket
+            ? undefined
+            : bracket.color === "green"
               ? "rgba(61, 151, 95, 0.25)"
               : "rgba(139, 46, 46, 0.25)",
           borderColor:
             bracket.color === "green"
               ? "rgba(61, 107, 79, 0.6)"
               : "rgba(139, 46, 46, 0.6)",
+          classNames: isBasket ? ["bracket-basket"] : [],
           extendedProps: {
             type: "bracket",
             bracket: bracket,
@@ -230,6 +233,7 @@ const CalendarGrid = forwardRef(function CalendarGrid(
     onBracketProposalReject,
     onBracketProposalMove,
     onBracketProposalResize,
+    onBasketOpen,
   },
   ref,
 ) {
@@ -428,6 +432,15 @@ const CalendarGrid = forwardRef(function CalendarGrid(
         nowIndicator={true}
         editable={true}
         selectable={true}
+        selectOverlap={(event) => {
+          if (
+            event.extendedProps?.type === "bracket" &&
+            event.extendedProps?.bracket?.mode === "basket"
+          ) {
+            return false;
+          }
+          return true;
+        }}
         unselectAuto={false}
         droppable={true}
         eventInteractive={true}
@@ -626,6 +639,8 @@ const CalendarGrid = forwardRef(function CalendarGrid(
           }
 
           if (info.event.extendedProps.type === "bracket") {
+            const bracket = info.event.extendedProps.bracket;
+
             // Move title to a small tab in the top right
             const titleEl = el.querySelector(".fc-event-title");
             if (titleEl) {
@@ -637,7 +652,7 @@ const CalendarGrid = forwardRef(function CalendarGrid(
             tab.className = "bracket-tab";
             tab.innerHTML = info.event.title;
             tab.style.background =
-              info.event.extendedProps.bracket.color === "green"
+              bracket.color === "green"
                 ? "rgba(61, 107, 79, 0.7)"
                 : "rgba(139, 46, 46, 0.7)";
             el.appendChild(tab);
@@ -646,6 +661,25 @@ const CalendarGrid = forwardRef(function CalendarGrid(
             el.style.overflow = "visible";
             el.style.zIndex = "999";
             if (el.parentElement) el.parentElement.style.overflow = "visible";
+
+            // Basket brackets are tappable — open their panel.
+            // Background-display events don't reliably fire FullCalendar's
+            // shared eventClick, so we attach directly to the DOM element.
+            if (bracket.mode === "basket") {
+              el.style.pointerEvents = "auto";
+
+              el.addEventListener("click", (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (onBasketOpen) onBasketOpen(bracket);
+              });
+
+              el.addEventListener("touchend", (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (onBasketOpen) onBasketOpen(bracket);
+              });
+            }
 
             return;
           }

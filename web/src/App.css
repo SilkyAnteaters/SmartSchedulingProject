@@ -1046,6 +1046,18 @@
   color: #8B2E2E;
 }
 
+.bracket-basket {
+  background-color: transparent !important;
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(61, 151, 95, 0.2),
+    rgba(61, 151, 95, 0.2) 8px,
+    rgba(61, 151, 95, 0.35) 8px,
+    rgba(61, 151, 95, 0.35) 16px
+  ) !important;
+  cursor: pointer;
+}
+
 /* ── Day Selector ── */
 .day-selector {
   display: flex;

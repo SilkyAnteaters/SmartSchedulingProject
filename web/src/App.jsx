@@ -12,6 +12,7 @@ import GenerateScheduleModal from "./components/GenerateScheduleModal";
 import BracketProposalModal from "./components/BracketProposalModal";
 import SuggestBracketsModal from "./components/SuggestBracketsModal";
 import HabitsList from "./components/HabitsList";
+import BasketPanel from "./components/BasketPanel";
 
 const API = `http://${window.location.hostname}:8000`;
 
@@ -38,6 +39,7 @@ function App() {
   const [editingProposal, setEditingProposal] = useState(null);
   const [habitBadgeCount, setHabitBadgeCount] = useState(0);
   const [showHabits, setShowHabits] = useState(false);
+  const [openBasket, setOpenBasket] = useState(null);
 
   const handleRefresh = useCallback(() => {
     calendarGridRef.current?.refresh();
@@ -155,6 +157,11 @@ function App() {
     } catch (err) {
       console.error("Failed to fetch habit badge:", err);
     }
+  }, []);
+
+  const handleBasketOpen = useCallback((bracket) => {
+    setOpenBasket(bracket);
+    setShowHabits(false);
   }, []);
 
   useEffect(() => {
@@ -361,6 +368,7 @@ function App() {
             onBracketProposalReject={handleBracketProposalReject}
             onBracketProposalMove={handleBracketProposalMove}
             onBracketProposalResize={handleBracketProposalResize}
+            onBasketOpen={handleBasketOpen}
           />
         </section>
 
@@ -368,7 +376,10 @@ function App() {
           className={`habits-panel ${mobileTab === "habits" ? "mobile-active" : ""}`}
         >
           <h2>Habits</h2>
-          <HabitsList onToggled={refreshHabitBadge} />
+          <HabitsList
+            onToggled={refreshHabitBadge}
+            onOpenBasket={handleBasketOpen}
+          />
         </aside>
 
         <aside
@@ -579,10 +590,21 @@ function App() {
               </button>
             </div>
             <div className="modal-body">
-              <HabitsList onToggled={refreshHabitBadge} />
+              <HabitsList
+                onToggled={refreshHabitBadge}
+                onOpenBasket={handleBasketOpen}
+              />
             </div>
           </div>
         </>
+      )}
+
+      {openBasket && (
+        <BasketPanel
+          bracket={openBasket}
+          onClose={() => setOpenBasket(null)}
+          onRefresh={handleRefresh}
+        />
       )}
 
       {proposalCount > 0 && (

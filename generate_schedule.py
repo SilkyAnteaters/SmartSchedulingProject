@@ -196,6 +196,7 @@ def generate_schedule(
         day_name = datetime.strptime(date_str, "%Y-%m-%d").strftime("%A")
         busy = get_busy_blocks(date_str)
         brackets = get_brackets_for_date(date_str)
+        brackets = [b for b in brackets if b.get("mode", "rigid") != "basket"]
 
         green_brackets = [b for b in brackets if b["color"] == "green"]
         red_brackets = [b for b in brackets if b["color"] == "red"]

@@ -8,7 +8,7 @@ const PERIOD_LABELS = {
 };
 const PERIOD_ORDER = ["morning", "afternoon", "evening"];
 
-export default function HabitsList({ onToggled }) {
+export default function HabitsList({ onToggled, onOpenBasket }) {
   const [habits, setHabits] = React.useState([]);
   const [status, setStatus] = React.useState({});
   const [currentPeriod, setCurrentPeriod] = React.useState(null);
@@ -16,6 +16,7 @@ export default function HabitsList({ onToggled }) {
   const [showAddForm, setShowAddForm] = React.useState(false);
   const [newTitle, setNewTitle] = React.useState("");
   const [newPeriod, setNewPeriod] = React.useState("morning");
+  const [currentBasket, setCurrentBasket] = React.useState(null);
 
   async function fetchHabits() {
     setLoading(true);
@@ -35,6 +36,15 @@ export default function HabitsList({ onToggled }) {
 
   React.useEffect(() => {
     fetchHabits();
+  }, []);
+
+  React.useEffect(() => {
+    fetch(`${API}/baskets/current`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.status === "ok") setCurrentBasket(data);
+      })
+      .catch(() => {});
   }, []);
 
   async function handleToggle(habitId) {
@@ -68,6 +78,16 @@ export default function HabitsList({ onToggled }) {
 
   return (
     <div className="habits-list">
+      {currentBasket && (
+        <button
+          className="btn-primary"
+          style={{ width: "100%", marginBottom: "8px" }}
+          onClick={() => onOpenBasket && onOpenBasket(currentBasket.bracket)}
+        >
+          🧺 {currentBasket.bracket.name} is open now
+        </button>
+      )}
+
       {PERIOD_ORDER.map((period) => {
         const periodHabits = habits.filter((h) => h.period === period);
         if (periodHabits.length === 0) return null;

@@ -27,6 +27,7 @@ export default function BracketModal({ info, onClose, onSaved }) {
   const [description, setDescription] = React.useState("");
   const [reflections, setReflections] = React.useState("");
   const [recurring, setRecurring] = React.useState(true);
+  const [mode, setMode] = React.useState("rigid");
   const [selectedDays, setSelectedDays] = React.useState([dayOfWeek]);
   const [submitting, setSubmitting] = React.useState(false);
 
@@ -53,6 +54,7 @@ export default function BracketModal({ info, onClose, onSaved }) {
         specific_date: recurring ? null : date,
         description,
         reflections,
+        mode,
       }),
     });
 
@@ -106,6 +108,26 @@ export default function BracketModal({ info, onClose, onSaved }) {
                 </button>
               </div>
             </div>
+
+            {color === "green" && (
+              <div className="form-field">
+                <label>Mode</label>
+                <div className="bracket-type-toggle">
+                  <button
+                    className={mode === "rigid" ? "active green" : ""}
+                    onClick={() => setMode("rigid")}
+                  >
+                    📌 Rigid
+                  </button>
+                  <button
+                    className={mode === "basket" ? "active green" : ""}
+                    onClick={() => setMode("basket")}
+                  >
+                    🧺 Basket
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Time range — read only, set by drag */}
             <div className="form-field">

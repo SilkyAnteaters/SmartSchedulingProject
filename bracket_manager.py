@@ -37,6 +37,7 @@ def create_bracket(
     description: str = "",
     reflections: str = "",
     specific_date: str = None,  # "2026-07-18" for one-off
+    mode: str = "rigid",  # "rigid" or "basket"
 ) -> dict:
     """Create a new bracket and save it."""
     brackets = load_brackets()
@@ -52,6 +53,7 @@ def create_bracket(
         "specific_date": specific_date,
         "description": description,
         "reflections": reflections,
+        "mode": mode,
         "active": True,
         "created": datetime.now().strftime("%Y-%m-%d"),
     }
@@ -200,3 +202,104 @@ def create_default_brackets() -> None:
 
     save_brackets(defaults)
     print("Created default brackets")
+
+
+def get_basket_pool(bracket_id: str) -> dict:
+    """
+    Return the pool of habits and low-energy unscheduled tasks that
+    match a basket bracket's time window and duration.
+    """
+    from config import HABIT_PERIODS, TASKS, INBOX
+    import frontmatter
+
+    bracket = None
+    for b in get_brackets():
+        if b["id"] == bracket_id:
+            bracket = b
+            break
+
+    if not bracket:
+        return {"status": "error", "message": "Bracket not found"}
+
+    if bracket.get("mode") != "basket":
+        return {"status": "error", "message": "Bracket is not a basket"}
+
+    start_h, start_m = map(int, bracket["start_time"].split(":"))
+    end_h, end_m = map(int, bracket["end_time"].split(":"))
+    bracket_start_min = start_h * 60 + start_m
+    bracket_end_min = end_h * 60 + end_m
+    bracket_duration = bracket_end_min - bracket_start_min
+
+    # Determine which habit period(s) overlap this bracket's time window
+    matching_periods = []
+    for period, (p_start, p_end) in HABIT_PERIODS.items():
+        p_start_h, p_start_m = map(int, p_start.split(":"))
+        p_end_h, p_end_m = map(int, p_end.split(":"))
+        p_start_min = p_start_h * 60 + p_start_m
+        p_end_min = p_end_h * 60 + p_end_m
+        if bracket_start_min < p_end_min and bracket_end_min > p_start_min:
+            matching_periods.append(period)
+
+    # Matching habits
+    from habit_manager import get_habits, get_today_status
+
+    habits = []
+    for period in matching_periods:
+        habits.extend(get_habits(period=period))
+    status = get_today_status()
+    for h in habits:
+        h["done"] = status.get(h["id"], False)
+
+    # Matching low-energy unscheduled tasks
+    from split_task import parse_duration_to_minutes
+
+    tasks = []
+    all_files = list(TASKS.rglob("*.md")) + list(INBOX.rglob("*.md"))
+    for filepath in all_files:
+        post = frontmatter.load(filepath)
+        title = post.metadata.get("title", "")
+        task_status = post.metadata.get("status", "")
+        energy = post.metadata.get("energy_required", "")
+        if not title or task_status in ("done", "scheduled", "in-progress"):
+            continue
+        if energy not in ("cantrip", "low"):
+            continue
+        excluded = post.metadata.get("excluded_baskets") or []
+        if bracket_id in excluded:
+            continue
+        duration_min = parse_duration_to_minutes(
+            post.metadata.get("duration_estimated", "")
+        )
+        if duration_min == 0 or duration_min > bracket_duration:
+            continue
+        tasks.append(
+            {
+                "id": post.metadata.get("id"),
+                "title": title,
+                "energy_required": energy,
+                "duration_estimated": post.metadata.get("duration_estimated", ""),
+            }
+        )
+
+    return {"status": "ok", "bracket": bracket, "habits": habits, "tasks": tasks}
+
+
+def get_current_basket_id() -> str | None:
+    """Return the id of a basket bracket currently active right now, if any."""
+    from datetime import datetime
+
+    now = datetime.now()
+    today_str = now.strftime("%Y-%m-%d")
+    current_min = now.hour * 60 + now.minute
+
+    for b in get_brackets_for_date(today_str):
+        if b.get("mode") != "basket":
+            continue
+        start_h, start_m = map(int, b["start_time"].split(":"))
+        end_h, end_m = map(int, b["end_time"].split(":"))
+        start_min = start_h * 60 + start_m
+        end_min = end_h * 60 + end_m
+        if start_min <= current_min < end_min:
+            return b["id"]
+
+    return None

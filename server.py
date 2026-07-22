@@ -120,6 +120,7 @@ class CreateBracketRequest(BaseModel):
     description: Optional[str] = ""
     reflections: Optional[str] = ""
     specific_date: Optional[str] = None
+    mode: Optional[str] = "rigid"
 
 
 class UpdateBracketRequest(BaseModel):
@@ -169,6 +170,10 @@ class SetDeadlineRequest(BaseModel):
 
 class UnplanRequest(BaseModel):
     task_title: str
+
+
+class ExcludeFromBasketRequest(BaseModel):
+    task_id: str
 
 
 # --- Endpoints ---
@@ -1015,6 +1020,20 @@ def get_brackets_endpoint():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/baskets/current")
+def get_current_basket_endpoint():
+    """Return the currently active basket bracket's pool, if any."""
+    try:
+        from bracket_manager import get_current_basket_id, get_basket_pool
+
+        basket_id = get_current_basket_id()
+        if not basket_id:
+            return {"status": "none"}
+        return get_basket_pool(basket_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.post("/brackets")
 def create_bracket_endpoint(request: CreateBracketRequest):
     """Create a new bracket."""
@@ -1031,6 +1050,7 @@ def create_bracket_endpoint(request: CreateBracketRequest):
             description=request.description,
             reflections=request.reflections,
             specific_date=request.specific_date,
+            mode=request.mode,
         )
         return {"status": "created", "bracket": bracket}
     except Exception as e:
@@ -1073,6 +1093,49 @@ def get_brackets_for_date_endpoint(date_str: str):
         from bracket_manager import get_brackets_for_date
 
         return {"brackets": get_brackets_for_date(date_str)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/baskets/{bracket_id}/pool")
+def get_basket_pool_endpoint(bracket_id: str):
+    """Get the pool of habits and tasks matching a basket bracket."""
+    try:
+        from bracket_manager import get_basket_pool
+
+        result = get_basket_pool(bracket_id)
+        if result.get("status") == "error":
+            raise HTTPException(status_code=404, detail=result["message"])
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/baskets/{bracket_id}/exclude-task")
+def exclude_from_basket_endpoint(bracket_id: str, request: ExcludeFromBasketRequest):
+    """Remove a task from a specific basket's pool going forward."""
+    try:
+        from reschedule import find_task_by_id
+        import frontmatter
+
+        filepath = find_task_by_id(request.task_id)
+        if not filepath:
+            raise HTTPException(status_code=404, detail="Task not found")
+
+        post = frontmatter.load(filepath)
+        excluded = post.metadata.get("excluded_baskets") or []
+        if bracket_id not in excluded:
+            excluded.append(bracket_id)
+        post.metadata["excluded_baskets"] = excluded
+
+        with open(filepath, "w", encoding="utf-8") as f:
+            f.write(frontmatter.dumps(post))
+
+        return {"status": "excluded"}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
